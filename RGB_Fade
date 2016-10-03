@@ -1,0 +1,64 @@
+//RGB_Fade
+//Zamanla renk değiştiren RGB LED
+//Ledin 3 bacağı (kısa bacaklar) PWM sinyali verebilen arduino pinlerine bağlanır.
+//Ledin tipine göre (anot/katot) uzun bacak gnd/5v'a bağlanır.
+//tcanyasanul-3.10.2016
+
+
+#define yesilpin 3  //RGB bacaklarının pin atamaları
+#define mavipin 5
+#define kirmizipin 6 
+#define gecikme 35 //renkler arası geçiş süresini buradan belirleyebiliriz
+
+void setup() {
+
+  pinMode(yesilpin, OUTPUT);
+  pinMode(mavipin, OUTPUT);
+  pinMode(kirmizipin, OUTPUT);
+  digitalWrite(yesilpin, HIGH);
+  digitalWrite(mavipin, HIGH);
+  digitalWrite(kirmizipin, HIGH);
+}
+
+int kirmizi;
+int mavi;
+int yesil;
+ 
+void loop() {
+ 
+  int kirmizi = 255;
+  int mavi = 0;
+  int yesil = 0;
+  for( int i = 0 ; i < 255 ; i += 1 ){
+    yesil += 1;
+    kirmizi -= 1;
+    analogWrite( yesilpin, 255 - yesil );
+    analogWrite( kirmizipin, 255 - kirmizi );
+
+    delay( gecikme );
+  }
+ 
+  kirmizi = 0;
+  mavi = 0;
+  yesil = 255;
+  for( int i = 0 ; i < 255 ; i += 1 ){
+    mavi += 1;
+    yesil -= 1;
+    analogWrite( mavipin, 255 - mavi );
+    analogWrite( yesilpin, 255 - yesil );
+
+    delay( gecikme );
+  }
+ 
+  kirmizi = 0;
+  mavi = 255;
+  yesil = 0;
+  for( int i = 0 ; i < 255 ; i += 1 ){
+    kirmizi += 1;
+    mavi -= 1;
+    analogWrite( kirmizipin, 255 - kirmizi );
+    analogWrite( mavipin, 255 - mavi );
+
+    delay( gecikme );
+  }
+}
