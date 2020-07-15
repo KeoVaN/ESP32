@@ -1,5 +1,5 @@
 //ESP32 ile WiFi üzerinden LED kontrol
-//13.07.2020 tcyasanul
+//tcyasanul 13.07.2020
 
 #include <WiFi.h>
 
