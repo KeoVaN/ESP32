@@ -1,0 +1,239 @@
+//WiFi üzerinden ws2812b ARGB şerit LED kontrol örneği
+//tcyasanul 15.05.2020
+
+#include <Adafruit_NeoPixel.h>  //
+#include <WiFi.h>
+
+#define PIN 5 //hangi pinde?
+#define EA 48 //kaç adet LED var?
+#define Parla 200 //Parlaklık
+#define delayval 5 //pixel renk doldurma hızı
+
+const char* ssid     = ".."; //ağ adı
+const char* password = ".."; //ağ şifresi
+
+int value = 0;
+int tcy = 0;
+
+WiFiServer server(80); 
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(EA, PIN, NEO_GRB + NEO_KHZ800);
+    
+void setup() {
+    Serial.begin(115200);
+    delay(10);
+
+    Serial.println(); 
+    Serial.println();
+    Serial.print("Bağlanıyor ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+        }
+
+    Serial.println("");
+    Serial.println("Ağa bağlandı.");
+    Serial.print("Yerel IP; ");
+    Serial.println(WiFi.localIP()); 
+      
+    server.begin();
+  
+    strip.begin();
+    strip.setBrightness(Parla);
+    strip.show();
+
+    RGBW();
+    kapat();
+   
+}
+
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256*5; j++) { 
+    for(i=0; i< strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+    }
+    strip.show();
+    delay(wait);
+  }
+}
+
+void rainbow(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256; j++) {
+    for(i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel((i+j) & 255));
+    }
+    strip.show();
+    delay(wait);
+  }
+}
+
+
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+void colorWipe(uint32_t c, uint8_t wait) {
+  for(uint16_t i=0; i<strip.numPixels(); i++) {
+    strip.setPixelColor(i, c);
+    strip.show();
+    delay(wait);
+  }
+}
+
+void kirmizi() {
+  //strip.clear(); //bir önceki renkleri temizler
+  for(tcy=0; tcy<EA; tcy++) { // her pixel için
+    strip.setPixelColor(tcy, strip.Color(250, 0, 0)); //0,0,0-255,255,255 arası değerler. RGB
+    strip.show();
+    delay(delayval); //delayval ile atanan her pixeli doldurma hızı
+  }
+}
+
+void yesil() {
+  //strip.clear(); //bir önceki renkleri temizler
+  for(tcy=0; tcy<EA; tcy++) { // her pixel için
+    strip.setPixelColor(tcy, strip.Color(0, 250, 0)); //0,0,0-255,255,255 arası değerler. RGB
+    strip.show();
+    delay(delayval); //delayval ile atanan her pixeli doldurma hızı
+  }
+}
+
+void mavi() {
+  //strip.clear(); //bir önceki renkleri temizler
+  //
+  for(tcy=0; tcy<EA; tcy++) { // her pixel için
+    strip.setPixelColor(tcy, strip.Color(0, 0, 250)); //0,0,0-255,255,255 arası değerler. RGB
+    strip.show();
+    delay(delayval); //delayval ile atanan her pixeli doldurma hızı
+  }
+}
+
+void beyaz() {
+  //strip.clear(); //bir önceki renkleri temizler
+  for(tcy=0; tcy<EA; tcy++) { // her pixel için
+    strip.setPixelColor(tcy, strip.Color(250, 250, 250)); //0,0,0-255,255,255 arası değerler. RGB
+    strip.show();
+    delay(delayval); //delayval ile atanan her pixeli doldurma hızı
+  }
+}
+void kapat() {
+  //strip.clear(); //bir önceki renkleri temizler
+  for(tcy=0; tcy<EA; tcy++) { // her pixel için
+    strip.setPixelColor(tcy, strip.Color(0, 0, 0)); //0,0,0-255,255,255 arası değerler. RGB
+    strip.show();
+    delay(delayval); //delayval ile atanan her pixeli doldurma hızı
+  }
+}
+void RGBW() {
+  kirmizi();
+  yesil();
+  mavi();
+  beyaz();
+}
+
+void loop() {
+
+    WiFiClient client = server.available();         // gelen clientleri dinle
+
+    if (client) {                                   // client yakalarsan bu ife gir
+        Serial.println("Yeni Client.");             // seri mönitöre yaz
+        String currentLine = "";                    // gelen dataları stringe al
+       
+        while (client.connected()) {                // cliente bağlandığında while loopuna gir
+         
+            if (client.available()) {               // clientte okumaya hazır byte varsa bu ifin içine gir.
+                char c = client.read();             // byteı oku
+                Serial.write(c);                    // seri mönitöre okuduğun byteı yazdır
+                
+               if (c == '\n') {          
+
+                    if (currentLine.length() == 0) {
+                        client.println("HTTP/1.1 200 OK");
+                        client.println("Content-type:text/html");
+                        client.println();
+                        
+                        //  linkler <a>. . . </a> etiketi içinde, href="" komutuyla belirtilir.
+                        //  uzantının devamı yani GET/ olması için
+                        client.print("<a href=\"/0\">kirmizi</a>.<br>");   // tıklandığında GET/0 olması için
+                        client.print("<a href=\"/1\">yesil</a>.<br>");     // tıklandığında GET/1 olması için
+                        client.print("<a href=\"/2\">mavi</a>.<br>");      
+                        client.print("<a href=\"/3\">beyaz</a>.<br>");     
+                        client.print("<a href=\"/4\">rainbow</a>.<br>");   
+                        client.print("<a href=\"/5\">kapat</a>.<br>");   
+                        client.print("<a href=\"/6\">RGBW</a>.<br>");                
+                        client.print("tcyasanul");
+                                                             
+                        client.println();
+
+                    break;
+                    
+                    } else {  
+                        currentLine = "";}
+                } else if (c != '\r') { 
+                    currentLine += c;}     
+                    
+                // GET/ kontrol et
+                if (currentLine.endsWith("GET /0")) {   // GET/0 olursa
+                    kirmizi();    }                     // kirmizi fonk döndür
+                if (currentLine.endsWith("GET /1")) {   // GET/1 olursa
+                yesil();     }                          // yesil fonk döndür
+                if (currentLine.endsWith("GET /2")) {   
+                    mavi();   }                         
+                if (currentLine.endsWith("GET /3")) {   
+                    beyaz();    }
+                //if (currentLine.endsWith("GET /4")) {   
+                    //rainbowCycle(30);   }                                                         
+                if (currentLine.endsWith("GET /5")) {   
+                    kapat();    }                      
+                if (currentLine.endsWith("GET /6")) {   
+                    RGBW();   }
+
+
+                if (currentLine.endsWith("GET /4")) {   
+                    rainbowCycle(30);   }
+                    
+
+
+
+
+                    //deneme sonu
+                             
+            }
+        
+        }
+        
+    //bağlantıyı kapat
+    client.stop();
+    Serial.println("Client Disconnected.");
+    
+    }
+        
+    //rainbow(20); //breath gibi
+    // rainbowCycle(20);  //sevdiğim rainbow ()içi hız 20 tatlı
+    //kirmizi();
+    //delay(1999);
+    //yesil();
+    //delay(1999);
+    //mavi();
+    //delay(1999);
+    //beyaz();
+    //delay(1999);
+
+}
+
