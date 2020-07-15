@@ -1,3 +1,4 @@
+//ESP32 ile w2812b ARGB şerit LED örneği
 //tcyasanul 15.07.2020
 
 #include <Adafruit_NeoPixel.h>
