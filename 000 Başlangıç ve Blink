@@ -1,6 +1,6 @@
 //Arduino IDEsinden ESP32 kartını kullanmak için izlenmesi gereken yollar;
 //https://tcanelectronics.blogspot.com/2020/07/esp32-arduino-ide.html
-//tcyasanul 15.07.2020
+//tcyasanul 13.07.2020
 
 #define LED 5   //arzu edilen pin numarası
 void setup() {
