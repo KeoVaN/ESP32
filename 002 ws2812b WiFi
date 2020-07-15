@@ -1,4 +1,4 @@
-//WiFi üzerinden ws2812b ARGB şerit LED kontrol örneği
+//WiFi üzerinden ESP32 ile ws2812b ARGB şerit LED kontrol örneği
 //tcyasanul 15.05.2020
 
 #include <Adafruit_NeoPixel.h>  //
