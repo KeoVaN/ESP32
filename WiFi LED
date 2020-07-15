@@ -1,0 +1,90 @@
+//ESP32 ile WiFi üzerinden LED kontrol
+//13.07.2020 tcyasanul
+
+#include <WiFi.h>
+
+const char* ssid     = "..";    //Ağ adı
+const char* password = "..";    //Ağ şifresi
+
+WiFiServer server(80);
+
+int LED = 5;    //LED Hangi pinde
+int value = 0;
+
+void setup()
+{
+    Serial.begin(115200);
+    pinMode(LED, OUTPUT); 
+
+    delay(10);
+
+    //WiFi ağına bağplanıyoruz
+    Serial.println();
+    Serial.println();
+    Serial.print("Bağlanıyor ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    
+    Serial.println("");
+    Serial.println("Ağa bağlandı.");
+    Serial.print("Yerel IP; ");
+    Serial.println(WiFi.localIP());
+    
+    server.begin();
+}
+
+
+void loop(){
+    WiFiClient client = server.available(); 
+
+    if (client) {                             
+        Serial.println("Yeni Client.");          
+        String currentLine = "";              
+        while (client.connected()) {           
+            
+            if (client.available()) {            
+                char c = client.read();            
+                Serial.write(c);                   
+                if (c == '\n') {                  
+
+                    if (currentLine.length() == 0) {
+
+                        client.println("HTTP/1.1 200 OK");
+                        client.println("Content-type:text/html");
+                        client.println();
+                        client.print("LED <a href=\"/1\">ac</a>.<br>");       //GET /1 olması için
+                        client.print("LED <a href=\"/0\">kapat</a>.<br>");    //GET /0 olması için
+                        client.println();
+
+                    break;
+                    } 
+                else { currentLine = "";}
+                    
+                }
+
+                
+                else if (c != '\r') {  
+                    currentLine += c;      
+                }
+        
+                //Uzantının devamı, GET / kontrol et
+                if (currentLine.endsWith("GET /1")) {   // GET /1 olursa
+                    digitalWrite(LED, HIGH);              
+                }
+                if (currentLine.endsWith("GET /0")) {   //GET /0 olursa
+                    digitalWrite(LED, LOW);              
+                }
+            }
+        }
+
+    client.stop();
+    Serial.println("Client Yok");
+    
+    }
+}
