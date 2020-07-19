@@ -177,7 +177,7 @@ void loop() {
     }
     header = "";
     client.stop();
-    Serial.println("Client disconnected.");
+    Serial.println("Client baglantisi koptu.");
     Serial.println("");
   }
 }
