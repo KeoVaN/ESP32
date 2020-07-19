@@ -1,0 +1,183 @@
+//BME280; VIN 3v3,SDA d21, SCL d22
+//DHT11; Soldan 1. pin 3V3, 2. pin 10kohm pull-up ile arzu edilen gpio, 3. pin boş, 4. pin GND
+//pull-up direnç; VCC ile GPIO arasına, bu uygulamada 1. pin ile 2. pin arasına
+//tcyasanul 19.047.2020
+
+#include <WiFi.h>
+#include <Wire.h>
+#include <Adafruit_BME280.h>
+#include <Adafruit_Sensor.h>
+#include "DHT.h"
+
+#define DHTPIN 4  
+#define DHTTYPE DHT11  //DHT22 Olabilir 
+#define SEALEVELPRESSURE_HPA (1013.25) //MSL
+
+Adafruit_BME280 bme; 
+DHT dht(DHTPIN, DHTTYPE);
+
+const char* ssid     = "keovan";      //ağ adı
+const char* password = "Keovan..20";  //ağ şifresi
+WiFiServer server(80);                //port numarası
+
+String header;
+
+unsigned long currentTime = millis();
+unsigned long previousTime = 0; 
+const long timeoutTime = 2000;
+
+
+void setup() {
+  Serial.begin(115200);
+  bool status;
+
+  if (!bme.begin(0x76)) {
+    Serial.println("BME280 sensor bulunamadı!");
+    while (1);
+  }
+  
+  Serial.println(F("DHT sensor test!"));
+  dht.begin();
+
+    Serial.print("Aga baglaniyor; ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("");
+  Serial.println("Aga Baglandi.");
+  Serial.println("Yerel IP; ");
+  Serial.println(WiFi.localIP());
+  server.begin();
+  
+}
+
+void loop() {
+
+
+  WiFiClient client = server.available();   
+
+  if (client) {                             
+    currentTime = millis();
+    previousTime = currentTime;
+    Serial.println("Yeni Client.");          
+    String currentLine = "";               
+    while (client.connected() && currentTime - previousTime <= timeoutTime) { 
+      currentTime = millis();
+      if (client.available()) {             
+        char c = client.read();         
+        Serial.write(c);                
+        header += c;
+        if (c == '\n') {   
+
+          if (currentLine.length() == 0) {
+
+            //DHT başlatılabilmesi için             //t=Sıcaklık(C), f=Sıcaklık(F), h=humidity, hic=Hissedilen(C), hif=Hissedilen(F)
+            float h = dht.readHumidity();
+            float t = dht.readTemperature();
+            float f = dht.readTemperature(true);
+              
+            if (isnan(h) || isnan(t) || isnan(f)) {
+              Serial.println(F("DHT Sensor Arizası"));
+              return;
+            }
+
+            float hif = dht.computeHeatIndex(f, h);
+            float hic = dht.computeHeatIndex(t, h, false);
+
+
+            //Client başlatılabilmesi için
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println("Connection: close");
+            client.println();
+            
+           // HTML web sayfasında görüntüle
+            client.println("<!DOCTYPE html><html>");
+            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+            client.println("<link rel=\"icon\" href=\"data:,\">");
+            
+            // CSS style tablo 
+            client.println("<style>body { text-align: center; font-family: \"Trebuchet MS\", Arial;}");
+            client.println("table { border-collapse: collapse; width:35%; margin-left:auto; margin-right:auto; }");
+            client.println("th { padding: 12px; background-color: #0043af; color: white; }");
+            client.println("tr { border: 1px solid #ddd; padding: 12px; }");
+            client.println("tr:hover { background-color: #bcbcbc; }");
+            client.println("td { border: none; padding: 12px; }");
+            client.println(".sensor { color:white; font-weight: bold; background-color: #bcbcbc; padding: 1px; }");
+
+            // Header
+            client.println("</style></head><body><h1>tcyasanul</h1>");
+
+
+            //BME280 Sensör
+            client.println("<table><tr><th>SENSOR:</th><th>BME280</th></tr>");
+
+            client.println("<tr><td>SICAKLIK (C) </td><td><span class=\"sensor\">");
+            client.println(bme.readTemperature());
+            client.println(" *C</span></td></tr>");
+
+            //  Fahrenheit cinsinden sıcaklık              
+            //  client.println("<tr><td>SICAKLIK (F)</td><td><span class=\"sensor\">");
+            //  client.println(1.8 * bme.readTemperature() + 32);
+            //  client.println(" *F</span></td></tr>");  
+                 
+            client.println("<tr><td>BASINC</td><td><span class=\"sensor\">");
+            client.println(bme.readPressure() / 100.0F);
+            client.println(" hPa</span></td></tr>");
+            
+            client.println("<tr><td>IRTIFA (QNE)</td><td><span class=\"sensor\">");
+            client.println(bme.readAltitude(SEALEVELPRESSURE_HPA));
+            client.println(" m</span></td></tr>"); 
+            
+            client.println("<tr><td>NEM</td><td><span class=\"sensor\">");
+            client.println(bme.readHumidity());
+            client.println(" %</span></td></tr>"); 
+           
+            //  DHT11 Sensör
+            client.println("<table><tr><th>SENSOR:</th><th>DHT11</th></tr>");
+
+            client.println("<tr><td>SICAKLIK (C) </td><td><span class=\"sensor\">");
+            client.println(t);
+            client.println(" *C</span></td></tr>");
+            
+            //  Fahrenheit cinsinden sıcaklık           
+            //  client.println("<tr><td>SICAKLIK (F)</td><td><span class=\"sensor\">");
+            //  client.println(f);
+            //  client.println(" *F</span></td></tr>");  
+            
+            client.println("<tr><td>NEM</td><td><span class=\"sensor\">");
+            client.println(h);
+            client.println(" %</span></td></tr>"); 
+            
+            client.println("<tr><td>HISSEDILEN (C) </td><td><span class=\"sensor\">");
+            client.println(hic);
+            client.println(" *C</span></td></tr>"); 
+
+            //  Fahrenheit cinsinden hissedilen   
+            //  client.println("<tr><td>HISSEDILEN (F) </td><td><span class=\"sensor\">");
+            //  client.println(hif);
+            //  client.println(" *F</span></td></tr>"); 
+
+            client.println("</body></html>");
+            
+            client.println();
+
+            break;
+          } else { 
+            currentLine = "";
+          }
+        } else if (c != '\r') {  
+          currentLine += c;    
+               }
+      }
+    }
+    header = "";
+    client.stop();
+    Serial.println("Client disconnected.");
+    Serial.println("");
+  }
+}
