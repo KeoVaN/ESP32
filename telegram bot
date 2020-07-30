@@ -1,0 +1,272 @@
+/*
+  Rui Santos
+  Complete project details at https://RandomNerdTutorials.com/telegram-control-esp32-esp8266-nodemcu-outputs/
+  
+  Project created using Brian Lough's Universal Telegram Bot Library: https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot
+  Example based on the Universal Arduino Telegram Bot Library: https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot/blob/master/examples/ESP8266/FlashLED/FlashLED.ino
+*/
+
+
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h> // Universal Telegram Bot Library written by Brian Lough: https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot
+#include <ArduinoJson.h>
+#include <Adafruit_BME280.h>
+#include <Adafruit_Sensor.h>
+#include "DHT.h"
+
+
+// Replace with your network credentials
+const char* ssid = "keovan";
+const char* password = "Keovan..20";
+
+// Initialize Telegram BOT
+#define BOTtoken "1174052751:AAH2CjSPFlcNeFo_ZFwuHJ_ikqccy36YmR4"  // your Bot Token (Get from Botfather)
+
+// Use @myidbot to find out the chat ID of an individual or a group
+// Also note that you need to click "start" on a bot before it can
+// message you
+#define CHAT_ID "894442835"
+
+
+WiFiClientSecure client;
+UniversalTelegramBot bot(BOTtoken, client);
+
+//Checks for new messages every 1 second.
+int botRequestDelay = 1000;
+unsigned long lastTimeBotRan;
+
+// BME280 connect to ESP32 I2C (GPIO 21 = SDA, GPIO 22 = SCL)
+// BME280 connect to ESP8266 I2C (GPIO 4 = SDA, GPIO 5 = SCL)
+Adafruit_BME280 bme; 
+#define SEALEVELPRESSURE_HPA (1013.25)  //MSL giriliyor
+
+
+//DHT baglantısı için
+#define DHTPIN 4  
+#define DHTTYPE DHT11  //DHT22 Olabilir 
+DHT dht(DHTPIN, DHTTYPE);
+
+const int ledPin = 2;
+bool ledState = LOW;
+
+// Get BME280 sensor readings and return them as a String variable
+String getTemp(){
+  float temperature = bme.readTemperature();  
+  float t = dht.readTemperature();
+  String message = "BME280 Sıcaklık: " + String(temperature) + " ºC \n";
+  message += "DHT11 Sıcaklık: " + String (t) + " ºC \n";  
+  return message;
+}
+
+String getHum(){
+  float humidity = bme.readHumidity();
+  float h = dht.readHumidity();
+  String   message = "BME 280 Nem: % " + String (humidity) + "  \n";
+  message += "DHT11 Nem: %" + String (h) + " \n";    
+  return message;
+}
+
+String getBME(){
+  float temperature = bme.readTemperature();
+  float humidity = bme.readHumidity();
+  float press = (bme.readPressure() / 100.0F);
+  float  altitude = bme.readAltitude(SEALEVELPRESSURE_HPA); 
+  String message = "Sıcaklık: " + String(temperature) + " ºC \n";
+  message += "Nem: %" + String (humidity) + " \n";
+  message += "Basınç: " + String (press) + " hPa \n";
+  message += "İrtifa (QNE): " + String (altitude) + " m \n";  
+  return message;
+}
+
+String getDHT(){
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  float hic = dht.computeHeatIndex(t, h, false);
+  String message = "Sıcaklık: " + String(t) + " ºC \n";
+  message += "Nem: %" + String (h) + " \n";
+  message += "Hissedilen: " + String (hic) + " ºC \n";
+  return message;  
+}
+
+
+
+//Handle what happens when you receive new messages
+void handleNewMessages(int numNewMessages) {
+  Serial.println("handleNewMessages");
+  Serial.println(String(numNewMessages));
+
+  for (int i=0; i<numNewMessages; i++) {
+    // Chat id of the requester
+    String chat_id = String(bot.messages[i].chat_id);
+    if (chat_id != CHAT_ID){
+      bot.sendMessage(chat_id, "Unauthorized user", "");
+      continue;
+    }
+    
+    // Print the received message
+    String text = bot.messages[i].text;
+    Serial.println(text);
+
+    String from_name = bot.messages[i].from_name;
+
+    if (text == "Selam") {
+      int tcan= random(0,8);
+      if (tcan == 0) {
+        String Merhaba = "Merhaba, " + from_name + ".\n";
+        bot.sendMessage(chat_id, Merhaba, ""); }
+      if (tcan == 1) {
+        bot.sendMessage(chat_id, "AS Reyiz", ""); }
+      if (tcan == 2) {
+        bot.sendMessage(chat_id, "Aleyküm Selam Gardaş", ""); }
+      if (tcan == 3) {
+        bot.sendMessage(chat_id, "Ooo hoşgeldin kral", ""); }
+      if (tcan == 4) {
+        bot.sendMessage(chat_id, "Ooo sen buralara gelir miydin?", ""); }
+      if (tcan == 5) {
+        bot.sendMessage(chat_id, "Selam canım" , ""); }
+      if (tcan == 6) {
+        bot.sendMessage(chat_id, "Sen git başkasına Selam de!", ""); }
+      if (tcan == 7) {
+        bot.sendMessage(chat_id, "Emret gomtanım!", ""); }
+    }
+
+    if ((text == "Naber") || (text == "Naber?") || (text == "Naner")) {
+      int tcy= random(0,5);     
+      if (tcy == 0) {
+        String naber = "Teşekkür ederim " + from_name + ". ";
+        naber += "Sen nasılsın?";
+        bot.sendMessage(chat_id, naber, "");  }        
+      if (tcy == 1) {
+        bot.sendMessage(chat_id, "Hamdolsun hamdolsun", "");  }
+      if (tcy == 2) {
+        bot.sendMessage(chat_id, "Gelmedi senden bi haber", "");  }
+      if (tcy == 3) {
+        bot.sendMessage(chat_id, "Sana ne lan!", "");   }
+      if (tcy == 4) {
+        bot.sendMessage(chat_id, "ii ben sen?", "");   }
+    }  
+
+
+    if (text == "Komut") {
+      String Yetenek = "Şimdilik Komut Listem;\n";
+      Yetenek += "\n\n";
+      Yetenek += "Led aç\n";
+      Yetenek += "Led kapat\n";
+      Yetenek += "Led durum\n";
+      Yetenek += "Sıcaklık \n";
+      Yetenek += "Nem \n";
+      Yetenek += "Basınç \n";
+      Yetenek += "BME280 \n";
+      Yetenek += "DHT11 \n";              
+      bot.sendMessage(chat_id, Yetenek, "");
+    }
+
+    if ((text == "Ledac") || (text == "Led aç") || (text == "Led'i aç")) {
+      bot.sendMessage(chat_id, "LED Açıldı", "");
+      ledState = HIGH;
+      digitalWrite(ledPin, ledState);
+    }
+    
+    if ((text == "Ledkapat") || (text == "Led kapat") || (text == "Led'i kapat")) {
+      bot.sendMessage(chat_id, "LED Kapatıldı", "");
+      ledState = LOW;
+      digitalWrite(ledPin, ledState);
+    }
+    
+    if ((text == "Leddurum") || (text == "Led durum")) {
+      if (digitalRead(ledPin)){
+        bot.sendMessage(chat_id, "LED Açık", ""); }
+      else{
+        bot.sendMessage(chat_id, "LED Kapalı", ""); }
+    }
+    
+    if ((text == "Sıcaklık") || (text == "Sicaklik")) {
+      String temp = getTemp();
+      bot.sendMessage(chat_id, temp, "");
+    }  
+
+    if (text == "Nem") {
+      String hum = getHum();
+      bot.sendMessage(chat_id, hum, "");
+    }
+    
+    if (text == "Basınç") {
+      String pres = "Üzgünüm henüz hazır değilim, üzerinde çalışıyorum. \n";
+      bot.sendMessage(chat_id, pres, "");
+    }
+
+    if ((text == "Bme") || (text == "bme") || (text == "BME") || (text == "BME280")) {
+      String  tcy= getBME();
+      bot.sendMessage(chat_id, tcy, "");
+    }
+      
+    if ((text == "Dht") || (text == "dht") || (text == "DHT") || (text == "DHT11")) {
+      //String  tcan= getDHT();
+      //bot.sendMessage(chat_id, tcan, "");
+      bot.sendMessage(chat_id, getDHT(), "");      
+    } 
+    
+    if ((text == "Durum") || (text == "durum")) {
+      String  dbme= getBME();
+      String  ddht= getDHT();     
+      bot.sendMessage(chat_id, "SENSOR: BME28 \n" + dbme + "\n" "SENSOR: DHT11 \n" + ddht + "");        
+  
+     // bot.sendMessage(chat_id, "Sensör: DHT11 \n" + ddht + "");   
+    }     
+
+    if (text == "Kim yaptı?") {
+      String cCc = "Türkay Can Yasanul. \n";
+      bot.sendMessage(chat_id, cCc, "");
+    }
+
+    if (text == "Kimsin?") {
+      bot.sendMessage(chat_id, "tcy'nin iot botu \n", "");
+    }
+    
+    if (text == "Lorem ipsum") {
+      bot.sendMessage(chat_id, "dolor sit amet \n", "");
+    }
+            
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, ledState);
+  
+// Init BME280 sensor
+  if (!bme.begin(0x76)) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
+
+  Serial.println("DHT sensor test!");
+  dht.begin();
+  
+  // Connect to Wi-Fi
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+  // Print ESP32 Local IP Address
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  if (millis() > lastTimeBotRan + botRequestDelay)  {
+    int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+
+    while(numNewMessages) {
+      Serial.println("got response");
+      handleNewMessages(numNewMessages);
+      numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+    }
+    lastTimeBotRan = millis();
+  }
+}
+  
